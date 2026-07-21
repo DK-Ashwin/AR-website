@@ -1,248 +1,473 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>AR Exhibition Demo</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #000; color: #fff; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>AR Exhibition Demo</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-  #app { position: relative; width: 100vw; height: 100vh; }
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #000;
+      color: #fff;
+    }
 
-  /* ---------- Screens ---------- */
-  .screen {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; padding: 32px;
-    transition: opacity 0.3s ease;
-  }
-  .hidden { display: none; }
+    #app {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
 
-  /* Permission screen */
-  #permission-screen h1 { font-size: 22px; margin-bottom: 12px; }
-  #permission-screen p { opacity: 0.75; font-size: 14px; line-height: 1.5; margin-bottom: 28px; max-width: 320px; }
-  .btn {
-    background: #fff; color: #000; border: none; padding: 14px 28px;
-    border-radius: 999px; font-size: 15px; font-weight: 600; cursor: pointer;
-  }
-  .btn:active { transform: scale(0.97); }
-  .btn-secondary {
-    background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.4);
-  }
-  #error-msg { color: #ff6b6b; font-size: 13px; margin-top: 16px; max-width: 300px; }
+    /* ---------- Screens ---------- */
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 32px;
+      transition: opacity 0.3s ease;
+    }
 
-  /* Camera / scan screen */
-  #camera-screen video {
-    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-  }
-  .scan-frame {
-    position: relative; z-index: 2;
-    width: 240px; height: 240px;
-    border: 3px solid rgba(255,255,255,0.85);
-    border-radius: 16px;
-    box-shadow: 0 0 0 2000px rgba(0,0,0,0.45);
-  }
-  .scan-frame::before, .scan-frame::after {
-    content: ''; position: absolute; width: 30px; height: 30px; border-color: #4dd0e1;
-  }
-  .scan-hint {
-    position: absolute; bottom: 60px; left: 0; right: 0; z-index: 2;
-    text-align: center; font-size: 14px; opacity: 0.9;
-  }
-  .scan-line {
-    position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: #4dd0e1; box-shadow: 0 0 8px #4dd0e1;
-    animation: scanMove 2.2s ease-in-out infinite;
-  }
-  @keyframes scanMove {
-    0%, 100% { top: 4%; } 50% { top: 94%; }
-  }
+    .hidden {
+      display: none;
+    }
 
-  /* AR content overlay */
-  #ar-screen video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .ar-card {
-    position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
-    background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.85) 25%, rgba(0,0,0,0.95) 100%);
-    padding: 60px 20px 24px;
-  }
-  .ar-tag {
-    display: inline-block; background: #4dd0e1; color: #00272b;
-    font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
-    padding: 4px 10px; border-radius: 6px; margin-bottom: 10px; text-transform: uppercase;
-  }
-  .ar-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
-  .ar-meta { font-size: 12px; opacity: 0.65; margin-bottom: 12px; }
-  .ar-desc { font-size: 14px; line-height: 1.55; opacity: 0.92; margin-bottom: 18px; max-height: 22vh; overflow-y: auto; }
-  .ar-controls { display: flex; gap: 10px; align-items: center; }
-  .ar-progress { font-size: 12px; opacity: 0.6; margin-left: auto; }
+    /* Permission screen */
+    #permission-screen h1 {
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
 
-  .top-bar {
-    position: absolute; top: 0; left: 0; right: 0; z-index: 4;
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 16px 18px; background: linear-gradient(180deg, rgba(0,0,0,0.6), transparent);
-  }
-  .icon-btn {
-    width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.15);
-    display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer;
-    border: none; color: #fff;
-  }
+    #permission-screen p {
+      opacity: 0.75;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 28px;
+      max-width: 320px;
+    }
 
-  .pulse-dot {
-    width: 8px; height: 8px; border-radius: 50%; background: #4dd0e1;
-    display: inline-block; margin-right: 6px;
-    animation: pulse 1.4s infinite;
-  }
-  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
-</style>
+    .btn {
+      background: #fff;
+      color: #000;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+
+    #error-msg {
+      color: #ff6b6b;
+      font-size: 13px;
+      margin-top: 16px;
+      max-width: 300px;
+    }
+
+    /* Camera / scan screen */
+    #camera-screen video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .scan-frame {
+      position: relative;
+      z-index: 2;
+      width: 240px;
+      height: 240px;
+      border: 3px solid rgba(255, 255, 255, 0.85);
+      border-radius: 16px;
+      box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.45);
+    }
+
+    .scan-frame::before,
+    .scan-frame::after {
+      content: '';
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-color: #4dd0e1;
+    }
+
+    .scan-hint {
+      position: absolute;
+      bottom: 60px;
+      left: 0;
+      right: 0;
+      z-index: 2;
+      text-align: center;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .scan-line {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #4dd0e1;
+      box-shadow: 0 0 8px #4dd0e1;
+      animation: scanMove 2.2s ease-in-out infinite;
+    }
+
+    @keyframes scanMove {
+
+      0%,
+      100% {
+        top: 4%;
+      }
+
+      50% {
+        top: 94%;
+      }
+    }
+
+    /* AR content overlay */
+    #ar-screen video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .ar-card {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 3;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.85) 25%, rgba(0, 0, 0, 0.95) 100%);
+      padding: 60px 20px 24px;
+    }
+
+    .ar-tag {
+      display: inline-block;
+      background: #4dd0e1;
+      color: #00272b;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .ar-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .ar-meta {
+      font-size: 12px;
+      opacity: 0.65;
+      margin-bottom: 12px;
+    }
+
+    .ar-desc {
+      font-size: 14px;
+      line-height: 1.55;
+      opacity: 0.92;
+      margin-bottom: 18px;
+      max-height: 22vh;
+      overflow-y: auto;
+    }
+
+    .ar-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .ar-progress {
+      font-size: 12px;
+      opacity: 0.6;
+      margin-left: auto;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 4;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 18px;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.6), transparent);
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      color: #fff;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4dd0e1;
+      display: inline-block;
+      margin-right: 6px;
+      animation: pulse 1.4s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.3;
+      }
+    }
+  </style>
 </head>
+
 <body>
-<div id="app">
+  <div id="app">
 
-  <!-- SCREEN 1: Permission request -->
-  <div id="permission-screen" class="screen">
-    <h1>Welcome to the Exhibition</h1>
-    <p>To view the augmented reality history of each product, we need access to your camera. Point your camera at the exhibit's QR marker after granting access.</p>
-    <button class="btn" id="grant-btn">Enable Camera</button>
-    <div id="error-msg" class="hidden"></div>
-  </div>
-
-  <!-- SCREEN 2: Scanning (waiting to detect marker) -->
-  <div id="camera-screen" class="screen hidden" style="padding:0;">
-    <video id="scan-video" autoplay playsinline muted></video>
-    <div class="scan-frame"><div class="scan-line"></div></div>
-    <div class="scan-hint"><span class="pulse-dot"></span>Point camera at the exhibit marker</div>
-  </div>
-
-  <!-- SCREEN 3: AR content view -->
-  <div id="ar-screen" class="screen hidden" style="padding:0;">
-    <video id="ar-video" autoplay playsinline muted></video>
-    <div class="top-bar">
-      <button class="icon-btn" id="rescan-btn">↺</button>
-      <button class="icon-btn" id="close-btn">✕</button>
+    <!-- SCREEN 1: Permission request -->
+    <div id="permission-screen" class="screen">
+      <h1>Welcome to the Exhibition</h1>
+      <p>To view the augmented reality history of each product, we need access to your camera. Point your camera at the
+        exhibit's QR marker after granting access.</p>
+      <button class="btn" id="grant-btn">Enable Camera</button>
+      <div id="error-msg" class="hidden"></div>
     </div>
-    <div class="ar-card">
-      <div class="ar-tag" id="ar-tag">Now Viewing</div>
-      <div class="ar-title" id="ar-title"></div>
-      <div class="ar-meta" id="ar-meta"></div>
-      <div class="ar-desc" id="ar-desc"></div>
-      <div class="ar-controls">
-        <button class="btn" id="next-btn">Next Product →</button>
-        <span class="ar-progress" id="ar-progress"></span>
+
+    <!-- SCREEN 2: Scanning (waiting to detect marker) -->
+    <div id="camera-screen" class="screen hidden" style="padding:0;">
+      <video id="scan-video" autoplay playsinline muted></video>
+      <div class="scan-frame">
+        <div class="scan-line"></div>
+      </div>
+      <div class="scan-hint"><span class="pulse-dot"></span>Point camera at the exhibit marker</div>
+    </div>
+
+    <!-- SCREEN 3: AR content view -->
+    <div id="ar-screen" class="screen hidden" style="padding:0;">
+      <video id="ar-video" autoplay playsinline muted></video>
+      <div class="top-bar">
+        <button class="icon-btn" id="rescan-btn">↺</button>
+        <button class="icon-btn" id="close-btn">✕</button>
+      </div>
+      <div class="ar-card">
+        <div class="ar-tag" id="ar-tag">Now Viewing</div>
+        <div class="ar-title" id="ar-title"></div>
+        <div class="ar-meta" id="ar-meta"></div>
+        <div class="ar-desc" id="ar-desc"></div>
+        <div class="ar-controls">
+          <button class="btn" id="next-btn">Scan Next Product →</button>
+          <span class="ar-progress" id="ar-progress"></span>
+        </div>
       </div>
     </div>
+
   </div>
 
-</div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.js"></script>
+  <script>
+    /* ============================================================
+       DEMO DATA — each entry is keyed by whatever string is encoded
+       in that exhibit's physical QR code. Swap for a real lookup
+       (CMS / API call) keyed off the decoded QR text in production.
+       e.g. QR encodes "https://yoursite.com/scan?id=product-1"
+            -> you'd extract "product-1" and fetch its data.
+       ============================================================ */
+    const products = {
+      "product-1": {
+        tag: "Product 01",
+        title: "Handwoven Ikat Loom",
+        meta: "Origin: 1920 · Regional Craft Collection",
+        desc: "This loom represents three generations of weaving tradition. Originally used to produce ceremonial textiles, it was restored in 2015 and now anchors our heritage collection."
+      },
+      "product-2": {
+        tag: "Product 02",
+        title: "Brass Filigree Lamp",
+        meta: "Origin: 1948 · Metalwork Collection",
+        desc: "Crafted by artisans in a post-independence workshop, this lamp showcases the transition from purely functional to decorative brasswork in the region."
+      },
+      "product-3": {
+        tag: "Product 03",
+        title: "Terracotta Storage Vessel",
+        meta: "Origin: Circa 1890 · Ceramics Collection",
+        desc: "Used historically for grain storage, this vessel's ridged texture increases surface area for evaporative cooling to preserve contents through hot seasons."
+      }
+    };
 
-<script>
-/* ============================================================
-   DEMO DATA — swap this out for your real product/history data,
-   e.g. fetched from a CMS or JSON based on the scanned QR id.
-   ============================================================ */
-const products = [
-  {
-    tag: "Product 01",
-    title: "Handwoven Ikat Loom",
-    meta: "Origin: 1920 · Regional Craft Collection",
-    desc: "This loom represents three generations of weaving tradition. Originally used to produce ceremonial textiles, it was restored in 2015 and now anchors our heritage collection. Each thread pattern encodes a family motif passed down through oral history."
-  },
-  {
-    tag: "Product 02",
-    title: "Brass Filigree Lamp",
-    meta: "Origin: 1948 · Metalwork Collection",
-    desc: "Crafted by artisans in a post-independence workshop, this lamp showcases the transition from purely functional to decorative brasswork in the region, blending Art Deco lines with traditional filigree."
-  },
-  {
-    tag: "Product 03",
-    title: "Terracotta Storage Vessel",
-    meta: "Origin: Circa 1890 · Ceramics Collection",
-    desc: "Used historically for grain storage, this vessel's ridged texture is both decorative and functional — increasing surface area for evaporative cooling to preserve contents through hot seasons."
-  }
-];
+    // For this demo: which QR id we expect on the very first scan.
+    // In production this comes from the URL the native QR scan opened,
+    // e.g. new URLSearchParams(location.search).get('id')
+    let expectedId = new URLSearchParams(location.search).get('id') || "product-1";
 
-let currentIndex = 0;
-let stream = null;
+    let stream = null;
+    let scanning = false;
+    let canvas = document.createElement('canvas');
+    let ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-const els = {
-  permission: document.getElementById('permission-screen'),
-  camera: document.getElementById('camera-screen'),
-  ar: document.getElementById('ar-screen'),
-  grantBtn: document.getElementById('grant-btn'),
-  errorMsg: document.getElementById('error-msg'),
-  scanVideo: document.getElementById('scan-video'),
-  arVideo: document.getElementById('ar-video'),
-  nextBtn: document.getElementById('next-btn'),
-  rescanBtn: document.getElementById('rescan-btn'),
-  closeBtn: document.getElementById('close-btn'),
-  tag: document.getElementById('ar-tag'),
-  title: document.getElementById('ar-title'),
-  meta: document.getElementById('ar-meta'),
-  desc: document.getElementById('ar-desc'),
-  progress: document.getElementById('ar-progress'),
-};
+    const els = {
+      permission: document.getElementById('permission-screen'),
+      camera: document.getElementById('camera-screen'),
+      ar: document.getElementById('ar-screen'),
+      grantBtn: document.getElementById('grant-btn'),
+      errorMsg: document.getElementById('error-msg'),
+      scanVideo: document.getElementById('scan-video'),
+      arVideo: document.getElementById('ar-video'),
+      scanHint: document.querySelector('.scan-hint'),
+      nextBtn: document.getElementById('next-btn'),
+      rescanBtn: document.getElementById('rescan-btn'),
+      closeBtn: document.getElementById('close-btn'),
+      tag: document.getElementById('ar-tag'),
+      title: document.getElementById('ar-title'),
+      meta: document.getElementById('ar-meta'),
+      desc: document.getElementById('ar-desc'),
+      progress: document.getElementById('ar-progress'),
+    };
 
-function show(screen) {
-  [els.permission, els.camera, els.ar].forEach(s => s.classList.add('hidden'));
-  screen.classList.remove('hidden');
-}
+    function show(screen) {
+      [els.permission, els.camera, els.ar].forEach(s => s.classList.add('hidden'));
+      screen.classList.remove('hidden');
+    }
 
-// STEP 1: request camera permission
-els.grantBtn.addEventListener('click', async () => {
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' },
-      audio: false
+    // STEP 1: request camera permission (only asked once)
+    els.grantBtn.addEventListener('click', async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
+          audio: false
+        });
+        els.scanVideo.srcObject = stream;
+        els.arVideo.srcObject = stream;
+        show(els.camera);
+        beginScanning();
+      } catch (err) {
+        els.errorMsg.textContent = 'Camera access was denied or unavailable. Please allow camera permission in your browser settings and try again.';
+        els.errorMsg.classList.remove('hidden');
+      }
     });
-    els.scanVideo.srcObject = stream;
-    els.arVideo.srcObject = stream;
-    show(els.camera);
-    startMarkerDetection();
-  } catch (err) {
-    els.errorMsg.textContent = 'Camera access was denied or unavailable. Please allow camera permission in your browser settings and try again.';
-    els.errorMsg.classList.remove('hidden');
-  }
-});
 
-/*
-  STEP 2: "marker detection" placeholder.
-  In production, replace this timeout with a real image-tracking
-  library (e.g. MindAR image target tracking) that fires a callback
-  when the QR/marker image is recognized in the camera feed.
-  For this demo, we simulate detection after a short delay so you
-  can see and test the full flow end to end.
-*/
-function startMarkerDetection() {
-  setTimeout(() => {
-    loadProduct(currentIndex);
-    show(els.ar);
-  }, 2200);
-}
+    /*
+      STEP 2: real QR decoding using jsQR, run against live video frames.
+      This is the in-app "scan the same QR" step. Once it decodes a QR
+      whose value matches a known product id, we unlock the AR view for
+      that product. Any recognizable exhibit QR works here — not just
+      the one that opened the page — so walking up to a different
+      exhibit and scanning its QR "in the same manner" works too.
+    */
+    function beginScanning() {
+      scanning = true;
+      els.scanHint.innerHTML = '<span class="pulse-dot"></span>Point camera at the exhibit QR code';
+      requestAnimationFrame(scanFrame);
+    }
 
-function loadProduct(i) {
-  const p = products[i];
-  els.tag.textContent = p.tag;
-  els.title.textContent = p.title;
-  els.meta.textContent = p.meta;
-  els.desc.textContent = p.desc;
-  els.progress.textContent = `${i + 1} / ${products.length}`;
-  els.nextBtn.textContent = i < products.length - 1 ? 'Next Product →' : 'Restart Tour ↺';
-}
+    function scanFrame() {
+      if (!scanning) return;
 
-els.nextBtn.addEventListener('click', () => {
-  currentIndex = (currentIndex + 1) % products.length;
-  loadProduct(currentIndex);
-});
+      const video = els.scanVideo;
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: 'dontInvert'
+        });
 
-els.rescanBtn.addEventListener('click', () => {
-  show(els.camera);
-  startMarkerDetection();
-});
+        if (code && code.data) {
+          const id = extractProductId(code.data);
+          if (id && products[id]) {
+            scanning = false;
+            loadProduct(id);
+            show(els.ar);
+            return; // stop the scan loop
+          }
+        }
+      }
+      requestAnimationFrame(scanFrame);
+    }
 
-els.closeBtn.addEventListener('click', () => {
-  if (stream) stream.getTracks().forEach(t => t.stop());
-  show(els.permission);
-});
-</script>
+    // Pulls a product id out of whatever the QR encodes.
+    // Handles either a raw id ("product-2") or a full URL
+    // (".../scan?id=product-2") depending on how you generate your QRs.
+    function extractProductId(raw) {
+      if (products[raw]) return raw;
+      try {
+        const url = new URL(raw);
+        return url.searchParams.get('id');
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function loadProduct(id) {
+      const p = products[id];
+      els.tag.textContent = p.tag;
+      els.title.textContent = p.title;
+      els.meta.textContent = p.meta;
+      els.desc.textContent = p.desc;
+      els.progress.textContent = p.tag;
+    }
+
+    // "Next" doesn't cycle local data — it sends the visitor back to
+    // the live scanner so they can walk to the next exhibit and scan
+    // its QR the same way they scanned the first one.
+    els.nextBtn.addEventListener('click', () => {
+      show(els.camera);
+      beginScanning();
+    });
+
+    els.rescanBtn.addEventListener('click', () => {
+      show(els.camera);
+      beginScanning();
+    });
+
+    els.closeBtn.addEventListener('click', () => {
+      scanning = false;
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      show(els.permission);
+    });
+  </script>
 </body>
+
 </html>
